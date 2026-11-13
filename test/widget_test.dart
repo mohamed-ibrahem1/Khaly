@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(const TabSplitApp());
     await tester.pump();
 
-    expect(find.text('Khaly'), findsOneWidget);
+    expect(find.text('خلّى'), findsOneWidget);
     expect(find.text('اضغط + لإضافة شخص'), findsOneWidget);
   });
 }

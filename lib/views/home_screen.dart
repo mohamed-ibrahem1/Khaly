@@ -9,6 +9,7 @@ import '../widgets/add_person_dialog.dart';
 import '../widgets/add_shared_plate_dialog.dart';
 import '../widgets/add_item_dialog.dart';
 import 'results_screen.dart';
+import 'history_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -31,8 +32,11 @@ class HomeScreen extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: 'احسب',
-            onPressed: () => _calculateAndNavigate(context),
+            tooltip: 'السجل',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HistoryScreen()),
+            ),
           ),
         ],
       ),
@@ -116,20 +120,33 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: Consumer<BillProvider>(
         builder: (context, provider, _) => SafeArea(
           minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: SizedBox(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: provider.people.isEmpty
-                  ? null
-                  : () => _calculateAndNavigate(context),
-              style: ElevatedButton.styleFrom(
-                textStyle: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 56,
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: provider.people.isEmpty
+                      ? null
+                      : () => _calculateAndNavigate(context),
+                  style: ElevatedButton.styleFrom(
+                    textStyle: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  child: const Text('احسب'),
                 ),
               ),
-              child: const Text('احسب'),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                '™Ⓒ Eng Mohamed Ibrahem ',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.white54),
+              ),
+            ],
           ),
         ),
       ),
@@ -193,6 +210,7 @@ class HomeScreen extends StatelessWidget {
     final result = await AddPersonDialog.show(
       context,
       frequentFriends: provider.frequentFriends,
+      onRemoveFriend: provider.removeFrequentFriend,
     );
     if (result != null) {
       final added = provider.addPerson(
@@ -323,7 +341,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  void _calculateAndNavigate(BuildContext context) {
+  Future<void> _calculateAndNavigate(BuildContext context) async {
     final provider = context.read<BillProvider>();
     if (provider.people.isEmpty) {
       ScaffoldMessenger.of(
@@ -332,6 +350,8 @@ class HomeScreen extends StatelessWidget {
       return;
     }
     provider.calculateSettlements();
+    await provider.saveCurrentBillToHistory();
+    if (!context.mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ResultsScreen()),

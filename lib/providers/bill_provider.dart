@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/order_item.dart';
+import '../models/bill_history.dart';
 import '../models/person.dart';
 import '../models/shared_expense.dart';
 import '../models/shared_plate.dart';
 import '../models/transaction.dart';
+import '../services/storage_service.dart';
 
 /// Main state manager for the "أنا بضيع يا عم صبحي!" bill-splitting app.
 ///
@@ -20,6 +22,7 @@ class BillProvider extends ChangeNotifier {
   List<SharedExpense> _sharedExpenses = [];
   List<Transaction> _settlements = [];
   List<String> _frequentFriends = [];
+  List<BillHistory> _billHistory = [];
 
   // ---------------------------------------------------------------------------
   // Getters
@@ -29,6 +32,7 @@ class BillProvider extends ChangeNotifier {
   List<SharedExpense> get sharedExpenses => List.unmodifiable(_sharedExpenses);
   List<Transaction> get settlements => List.unmodifiable(_settlements);
   List<String> get frequentFriends => List.unmodifiable(_frequentFriends);
+  List<BillHistory> get billHistory => List.unmodifiable(_billHistory);
 
   // ---------------------------------------------------------------------------
   // Frequent Friends (SharedPreferences)
@@ -38,6 +42,11 @@ class BillProvider extends ChangeNotifier {
   Future<void> loadFrequentFriends() async {
     final prefs = await SharedPreferences.getInstance();
     _frequentFriends = prefs.getStringList('frequent_friends') ?? [];
+    notifyListeners();
+  }
+
+  Future<void> loadBillHistory() async {
+    _billHistory = await StorageService.getBillHistory();
     notifyListeners();
   }
 
@@ -334,6 +343,36 @@ class BillProvider extends ChangeNotifier {
       if (creditAmounts[ci] < epsilon) ci++;
     }
 
+    notifyListeners();
+  }
+
+  Future<void> saveCurrentBillToHistory() async {
+    if (_people.isEmpty) return;
+    final bill = BillHistory(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      date: DateTime.now(),
+      people: _people
+          .map(
+            (person) => person.copyWith(
+              personalItems: List.unmodifiable(person.personalItems),
+            ),
+          )
+          .toList(),
+      sharedPlates: List.unmodifiable(_sharedPlates),
+      sharedExpenses: List.unmodifiable(_sharedExpenses),
+      settlements: List.unmodifiable(_settlements),
+      totalBill: getTotalBill(),
+    );
+    await StorageService.saveBillHistory(bill);
+    _billHistory = await StorageService.getBillHistory();
+    notifyListeners();
+  }
+
+  void loadBillFromHistory(BillHistory bill) {
+    _people = bill.people;
+    _sharedPlates = bill.sharedPlates;
+    _sharedExpenses = bill.sharedExpenses;
+    _settlements = bill.settlements;
     notifyListeners();
   }
 

@@ -14,7 +14,9 @@ class TabSplitApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<BillProvider>(
-      create: (_) => BillProvider()..loadFrequentFriends(),
+      create: (_) => BillProvider()
+        ..loadFrequentFriends()
+        ..loadBillHistory(),
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: MaterialApp(

@@ -7,10 +7,14 @@ import 'package:flutter/material.dart';
 ///
 /// Returns `{name: String, amountPaid: double}` on success, or `null`.
 class AddPersonDialog extends StatefulWidget {
-  const AddPersonDialog._({required this.frequentFriends});
+  const AddPersonDialog._({
+    required this.frequentFriends,
+    required this.onRemoveFriend,
+  });
 
   /// List of previously-used friend names, shown as tappable chips.
   final List<String> frequentFriends;
+  final ValueChanged<String> onRemoveFriend;
 
   /// Show the add-person dialog.
   ///
@@ -19,10 +23,14 @@ class AddPersonDialog extends StatefulWidget {
   static Future<Map<String, dynamic>?> show(
     BuildContext context, {
     List<String> frequentFriends = const [],
+    ValueChanged<String>? onRemoveFriend,
   }) {
     return showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => AddPersonDialog._(frequentFriends: frequentFriends),
+      builder: (_) => AddPersonDialog._(
+        frequentFriends: frequentFriends,
+        onRemoveFriend: onRemoveFriend ?? (_) {},
+      ),
     );
   }
 
@@ -34,6 +42,13 @@ class _AddPersonDialogState extends State<AddPersonDialog> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  late List<String> _visibleFriends;
+
+  @override
+  void initState() {
+    super.initState();
+    _visibleFriends = List<String>.from(widget.frequentFriends);
+  }
 
   @override
   void dispose() {
@@ -74,7 +89,7 @@ class _AddPersonDialogState extends State<AddPersonDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Frequent friends chips ──
-              if (widget.frequentFriends.isNotEmpty) ...[
+              if (_visibleFriends.isNotEmpty) ...[
                 Text(
                   'أصدقاء سابقين:',
                   style: TextStyle(
@@ -86,8 +101,8 @@ class _AddPersonDialogState extends State<AddPersonDialog> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
-                  children: widget.frequentFriends.map((friend) {
-                    return ActionChip(
+                  children: _visibleFriends.map((friend) {
+                    return InputChip(
                       avatar: Icon(
                         Icons.person,
                         size: 18,
@@ -107,6 +122,13 @@ class _AddPersonDialogState extends State<AddPersonDialog> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       onPressed: () => _selectFriend(friend),
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      onDeleted: () {
+                        setState(() {
+                          _visibleFriends.remove(friend);
+                        });
+                        widget.onRemoveFriend(friend);
+                      },
                     );
                   }).toList(),
                 ),
